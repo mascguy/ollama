@@ -338,7 +338,7 @@ func RunHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	opts.MultiModal = len(info.ProjectorInfo) != 0
+	opts.MultiModal = true //len(info.ProjectorInfo) != 0
 	opts.ParentModel = info.Details.ParentModel
 
 	if interactive {

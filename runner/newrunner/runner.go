@@ -1,11 +1,13 @@
 package newrunner
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"image"
 	"io"
 	"log"
 	"log/slog"
@@ -38,7 +40,9 @@ type input struct {
 	token int32
 
 	// embed is an image embedding
-	embed []float32
+	//embed []float32
+
+	image image.Image
 }
 
 type Sequence struct {
@@ -167,13 +171,13 @@ func (s *Server) inputs(prompt string, images []ImageData) ([]input, error) {
 	var parts []string
 	var matches [][]string
 
-	/*if s.image != nil {
-		re := regexp.MustCompile(`\[img-(\d+)\]`)
-		parts = re.Split(prompt, -1)
-		matches = re.FindAllStringSubmatch(prompt, -1)
-	} else {*/
-	parts = []string{prompt}
-	//}
+	//if s.image != nil {
+	re := regexp.MustCompile(`\[img-(\d+)\]`)
+	parts = re.Split(prompt, -1)
+	matches = re.FindAllStringSubmatch(prompt, -1)
+	/*} else {
+		parts = []string{prompt}
+	}*/
 
 	for i, part := range parts {
 		// text - tokenize
@@ -201,6 +205,13 @@ func (s *Server) inputs(prompt string, images []ImageData) ([]input, error) {
 			if imageIndex < 0 {
 				return nil, fmt.Errorf("invalid image index: %d", n)
 			}
+
+			image, _, err := image.Decode(bytes.NewReader(images[imageIndex].Data))
+			if err != nil {
+				return nil, err
+			}
+
+			inputs = append(inputs, input{image: image})
 
 			/*embed, err := s.image.NewEmbed(s.lc, images[imageIndex].Data, images[imageIndex].AspectRatioID)
 			if err != nil {
@@ -333,6 +344,8 @@ func (s *Server) processBatch() error {
 	var outputs []int32
 	var seqs []int
 
+	var image image.Image
+
 	for i, seq := range s.seqs {
 		if seq == nil {
 			continue
@@ -356,14 +369,18 @@ func (s *Server) processBatch() error {
 				}
 			}
 
-			embedding := input.embed != nil
-			if embedding {
-				panic("images are not supported yet")
-			}
-
 			/*if j >= s.batchSize {
 				break
 			}*/
+
+			if input.image != nil {
+				if image != nil {
+					break
+				}
+				image = input.image
+				seq.pendingInputs = append(seq.pendingInputs, input)
+				continue
+			}
 
 			inputIDs = append(inputIDs, input.token)
 			pos = append(pos, int32(len(seq.cache.Inputs)+len(seq.pendingInputs)))
@@ -383,10 +400,15 @@ func (s *Server) processBatch() error {
 		return nil
 	}
 
+	var options []model.OptionsFunc
+	if image != nil {
+		options = append(options, model.WithImage(image))
+	}
+
 	ctx := s.model.Backend().NewContext()
 	defer ctx.Close()
 
-	logit, err := model.Forward(ctx, s.model, model.WithCache(s.cache.cache), model.WithInputIDs(inputIDs), model.WithPositions(pos), model.WithOutputs(outputs), model.WithSequences(seqs))
+	logit, err := model.Forward(ctx, s.model, append(options, model.WithCache(s.cache.cache), model.WithInputIDs(inputIDs), model.WithPositions(pos), model.WithOutputs(outputs), model.WithSequences(seqs))...)
 	if err != nil {
 		return err
 	}

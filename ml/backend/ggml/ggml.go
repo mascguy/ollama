@@ -255,7 +255,7 @@ func (c *Context) Compute(t ml.Tensor) ml.Tensor {
 	return t
 }
 
-func (c Context) Zeros(dtype ml.DType, shape ...int) ml.Tensor {
+func (c Context) Zeros(dtype ml.DType, shape ...int64) ml.Tensor {
 	if len(shape) < 1 || len(shape) > 4 {
 		panic("unsupported number of dimensions")
 	}

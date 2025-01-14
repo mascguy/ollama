@@ -295,8 +295,8 @@ func (c *Causal) Put(ctx ml.Context, key, value ml.Tensor, opts Options) (ml.Ten
 	}
 
 	if c.keys[c.curLayer] == nil || c.values[c.curLayer] == nil {
-		c.keys[c.curLayer] = c.cacheCtx.Zeros(c.DType, int(key.Dim(0)), int(key.Dim(1)), c.Capacity)
-		c.values[c.curLayer] = c.cacheCtx.Zeros(c.DType, int(value.Dim(0)), int(value.Dim(1)), c.Capacity)
+		c.keys[c.curLayer] = c.cacheCtx.Zeros(c.DType, key.Dim(0), key.Dim(1), int64(c.Capacity))
+		c.values[c.curLayer] = c.cacheCtx.Zeros(c.DType, value.Dim(0), value.Dim(1), int64(c.Capacity))
 	}
 
 	ctx.Forward(key.Copy(ctx, c.keys[c.curLayer].View(ctx, int(key.Stride(2))*c.curPos, int(key.Dim(0)*key.Dim(1)*key.Dim(2)))))
