@@ -294,14 +294,11 @@ func canNil(t reflect.Type) bool {
 		t.Kind() == reflect.Slice
 }
 
-func Forward(m Model, optsFuncs ...OptionsFunc) (ml.Tensor, error) {
+func Forward(ctx ml.Context, m Model, optsFuncs ...OptionsFunc) (ml.Tensor, error) {
 	var opts Options
 	for _, optsFunc := range optsFuncs {
 		optsFunc(m, &opts)
 	}
-
-	ctx := m.Backend().NewContext()
-	defer ctx.Close()
 
 	err := opts.Cache.StartForward(ctx, opts.sequences)
 	if err != nil {

@@ -383,7 +383,10 @@ func (s *Server) processBatch() error {
 		return nil
 	}
 
-	logit, err := model.Forward(s.model, model.WithCache(s.cache.cache), model.WithInputIDs(inputIDs), model.WithPositions(pos), model.WithOutputs(outputs), model.WithSequences(seqs))
+	ctx := s.model.Backend().NewContext()
+	defer ctx.Close()
+
+	logit, err := model.Forward(ctx, s.model, model.WithCache(s.cache.cache), model.WithInputIDs(inputIDs), model.WithPositions(pos), model.WithOutputs(outputs), model.WithSequences(seqs))
 	if err != nil {
 		return err
 	}
