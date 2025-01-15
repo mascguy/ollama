@@ -174,6 +174,12 @@ func New(s string) (Model, error) {
 }
 
 func populateFields(b ml.Backend, v reflect.Value, tags ...Tag) reflect.Value {
+	var iface bool
+	if v.Kind() == reflect.Interface {
+		iface = true
+		v = v.Elem()
+	}
+
 	t := v.Type()
 	if t.Kind() == reflect.Pointer {
 		t, v = t.Elem(), v.Elem()
@@ -250,6 +256,10 @@ func populateFields(b ml.Backend, v reflect.Value, tags ...Tag) reflect.Value {
 		if allNil {
 			return reflect.Zero(t)
 		}
+	}
+
+	if iface {
+		return v.Addr()
 	}
 
 	return v
